@@ -1,1 +1,5 @@
 Choose Ammo per Weapon lets you assign and unassign ammo per weapon.
+
+Usage:
+- Drag ammo onto a compatible weapon to assign
+- Press 'Interact' keybind on an item in the inventory to unassign
