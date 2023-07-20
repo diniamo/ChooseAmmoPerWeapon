@@ -1,0 +1,3 @@
+displayName = Choose Ammo per Weapon
+author = dinimo
+version = 1.0
