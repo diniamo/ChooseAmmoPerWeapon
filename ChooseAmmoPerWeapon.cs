@@ -6,6 +6,7 @@ using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.UI;
 
 namespace ChooseAmmoPerWeapon
 {
@@ -21,14 +22,15 @@ namespace ChooseAmmoPerWeapon
 
             // Keeps the same item objects used by the inventory for Main.HoverItem (instead of Cloning)
             // Might break stuff
-            IL.Terraria.UI.ItemSlot.MouseHover_ItemArray_int_int += il =>
+
+            IL_ItemSlot.MouseHover_ItemArray_int_int += il =>
             {
                 var c = new ILCursor(il);
 
                 c.GotoNext(i => i.MatchCallvirt(typeof(Item).GetMethod(nameof(Item.Clone))));
                 c.Remove();
             };
-            
+
             // This achieves the save as the ChooseAmmo parts below, but I spent quite a bit of time on this, so I have no heart to delete it
             /*IL.Terraria.Player.ChooseAmmo += il =>
             {
@@ -49,25 +51,26 @@ namespace ChooseAmmoPerWeapon
             };*/
 
             // Assign functionality
-            On.Terraria.UI.ItemSlot.OverrideLeftClick += OverrideLeftClick;
+
+            On_ItemSlot.OverrideLeftClick += OverrideLeftClick;
             // Unassign functionality
-            On.Terraria.UI.ItemSlot.RightClick_ItemArray_int_int += RightClick;
+            On_ItemSlot.RightClick_ItemArray_int_int += RightClick;
             // Draw ammo icon next to weapons
-            On.Terraria.UI.ItemSlot.Draw_SpriteBatch_ItemArray_int_int_Vector2_Color += ItemSlot_Draw;
+            On_ItemSlot.Draw_SpriteBatch_ItemArray_int_int_Vector2_Color += ItemSlot_Draw;
             // Main mod functionality
-            On.Terraria.Player.ChooseAmmo += ChooseAmmo;
+            On_Player.ChooseAmmo += ChooseAmmo;
 
             base.Load();
         }
 
-        private void RightClick(On.Terraria.UI.ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
+        private void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
         {
             Item item = inv[slot];
             if (Main.mouseRight && !AssignedAmmo.Remove(item))
                 orig.Invoke(inv, context, slot);
         }
 
-        private Item ChooseAmmo(On.Terraria.Player.orig_ChooseAmmo orig, Player self, Item weapon)
+        private Item ChooseAmmo(On_Player.orig_ChooseAmmo orig, Player self, Item weapon)
         {
             Item ammo;
             if (AssignedAmmo.TryGetValue(weapon, out ammo))
@@ -83,7 +86,7 @@ namespace ChooseAmmoPerWeapon
             base.Unload();
         }
 
-        private void ItemSlot_Draw(On.Terraria.UI.ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
+        private void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
         {
             orig.Invoke(spriteBatch, inv, context, slot, position, lightColor);
 
@@ -101,7 +104,7 @@ namespace ChooseAmmoPerWeapon
             }
         }
 
-        private static bool OverrideLeftClick(On.Terraria.UI.ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
+        private static bool OverrideLeftClick(On_ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
         {
             Item clicked = inv[slot];
             Item holding = Main.mouseItem;
