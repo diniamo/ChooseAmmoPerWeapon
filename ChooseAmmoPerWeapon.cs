@@ -115,8 +115,7 @@ namespace ChooseAmmoPerWeapon
                 }
             }
 
-            orig.Invoke(inv, context, slot);
-            return false;
+            return orig.Invoke(inv, context, slot);
         }
     }
 }
