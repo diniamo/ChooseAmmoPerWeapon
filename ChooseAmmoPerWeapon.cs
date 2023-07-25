@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System.Collections.Generic;
+using System.Reflection;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -15,20 +17,20 @@ namespace ChooseAmmoPerWeapon
         public static ChooseAmmoPerWeapon Instance => ModContent.GetInstance<ChooseAmmoPerWeapon>();
 
         public static Dictionary<Item, Item> AssignedAmmo;
+        public static Item HoverItem;
 
         public override void Load()
         {
             AssignedAmmo = new Dictionary<Item, Item>();
-
-            // Keeps the same item objects used by the inventory for Main.HoverItem (instead of Cloning)
-            // Might break stuff
-
+			// We use our own HoverItem variable as the Item object is Cloned in Terraria code
             IL_ItemSlot.MouseHover_ItemArray_int_int += il =>
             {
                 var c = new ILCursor(il);
 
-                c.GotoNext(i => i.MatchCallvirt(typeof(Item).GetMethod(nameof(Item.Clone))));
-                c.Remove();
+                c.GotoNext(MoveType.Before, i => i.MatchCallvirt(typeof(Item).GetMethod(nameof(Item.Clone))));
+
+                c.Emit(OpCodes.Dup);
+                c.Emit(OpCodes.Stsfld, typeof(ChooseAmmoPerWeapon).GetField(nameof(ChooseAmmoPerWeapon.HoverItem), BindingFlags.Public | BindingFlags.Static));
             };
 
             // This achieves the save as the ChooseAmmo parts below, but I spent quite a bit of time on this, so I have no heart to delete it
