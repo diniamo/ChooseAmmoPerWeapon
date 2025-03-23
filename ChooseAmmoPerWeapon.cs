@@ -1,9 +1,9 @@
+using System.Collections.Generic;
+using System.Reflection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
-using System.Collections.Generic;
-using System.Reflection;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -12,8 +12,8 @@ using Terraria.UI;
 
 namespace ChooseAmmoPerWeapon
 {
-	public class ChooseAmmoPerWeapon : Mod
-	{
+    public class ChooseAmmoPerWeapon : Mod
+    {
         public static ChooseAmmoPerWeapon Instance => ModContent.GetInstance<ChooseAmmoPerWeapon>();
 
         public static Dictionary<Item, Item> AssignedAmmo;
@@ -22,7 +22,7 @@ namespace ChooseAmmoPerWeapon
         public override void Load()
         {
             AssignedAmmo = new Dictionary<Item, Item>();
-			// We use our own HoverItem variable as the Item object is Cloned in Terraria code
+            // We use our own HoverItem variable as the Item object is Cloned in Terraria code
             IL_ItemSlot.MouseHover_ItemArray_int_int += il =>
             {
                 var c = new ILCursor(il);
@@ -33,27 +33,7 @@ namespace ChooseAmmoPerWeapon
                 c.Emit(OpCodes.Stsfld, typeof(ChooseAmmoPerWeapon).GetField(nameof(ChooseAmmoPerWeapon.HoverItem), BindingFlags.Public | BindingFlags.Static));
             };
 
-            // This achieves the save as the ChooseAmmo parts below, but I spent quite a bit of time on this, so I have no heart to delete it
-            /*IL.Terraria.Player.ChooseAmmo += il =>
-            {
-                var c = new ILCursor(il);
-                var ammoVar = Utils.AddVariable(il, typeof(Item));
-                var endLabel = c.DefineLabel();
-
-                c.Emit(Ldsfld, typeof(ChooseAmmoPerWeapon).GetField(nameof(ChooseAmmoPerWeapon.AssignedAmmo), BindingFlags.Public | BindingFlags.Static));
-                c.Emit(Ldarg_1);
-                c.Emit(Ldloca, ammoVar);
-                c.Emit(Callvirt, typeof(Dictionary<Item, Item>).GetMethod(nameof(Dictionary<Item, Item>.TryGetValue)));
-                c.Emit(Brfalse, endLabel);
-
-                c.Emit(Ldloc, ammoVar);
-                c.Emit(Ret);
-
-                c.MarkLabel(endLabel);
-            };*/
-
             // Assign functionality
-
             On_ItemSlot.OverrideLeftClick += OverrideLeftClick;
             // Unassign functionality
             On_ItemSlot.RightClick_ItemArray_int_int += RightClick;
@@ -63,6 +43,13 @@ namespace ChooseAmmoPerWeapon
             On_Player.ChooseAmmo += ChooseAmmo;
 
             base.Load();
+        }
+
+        public override void Unload()
+        {
+            AssignedAmmo = null;
+
+            base.Unload();
         }
 
         private void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
@@ -81,19 +68,12 @@ namespace ChooseAmmoPerWeapon
                 return orig.Invoke(self, weapon);
         }
 
-        public override void Unload()
-        {
-            AssignedAmmo = null;
-
-            base.Unload();
-        }
-
         private void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
         {
             orig.Invoke(spriteBatch, inv, context, slot, position, lightColor);
 
             Item ammo;
-            if (ChooseAmmoPerWeapon.AssignedAmmo.TryGetValue(inv[slot], out ammo))
+            if (AssignedAmmo.TryGetValue(inv[slot], out ammo))
             {
                 Texture2D texture = TextureAssets.Item[ammo.type].Value;
                 position.X += TextureAssets.InventoryBack.Value.Width * Main.inventoryScale;
