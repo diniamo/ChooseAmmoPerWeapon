@@ -9,17 +9,15 @@ namespace ChooseAmmoPerWeapon
     {
         public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
         {
-            ChooseAmmoPerWeapon instance = ChooseAmmoPerWeapon.instance;
-
-            if (instance.hoverItem != null)
+            if (ChooseAmmoPerWeapon.hoverItem != null)
             {
                 Item ammo;
-                if (instance.assignedAmmo.TryGetValue(instance.hoverItem, out ammo))
+                if (ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo.TryGetValue(ChooseAmmoPerWeapon.hoverItem, out ammo))
                 {
                     if (tooltips.Last().Text.ToLower().Contains("research"))
-                        tooltips.Insert(tooltips.Count - 1, new TooltipLine(instance, "AssignedAmmo", $"[c/808080:Using {ammo.Name}]"));
+                        tooltips.Insert(tooltips.Count - 1, new TooltipLine(ChooseAmmoPerWeapon.instance, "AssignedAmmo", $"[c/808080:Using {ammo.Name}]"));
                     else
-                        tooltips.Add(new TooltipLine(instance, "AssignedAmmo", $"[c/808080:Using {ammo.Name}]"));
+                        tooltips.Add(new TooltipLine(ChooseAmmoPerWeapon.instance, "AssignedAmmo", $"[c/808080:Using {ammo.Name}]"));
                 }
             }
 

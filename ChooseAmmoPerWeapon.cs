@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,14 +15,13 @@ namespace ChooseAmmoPerWeapon
     {
         public static ChooseAmmoPerWeapon instance;
 
-        public Dictionary<Item, Item> assignedAmmo;
-        public Item hoverItem;
+        // Static so the instance doesn't have to be retrieved in IL
+        public static Item hoverItem;
 
         public override void Load()
         {
             instance = this;
 
-            assignedAmmo = new Dictionary<Item, Item>();
             // We use our own HoverItem variable as the Item object is Cloned in Terraria code
             IL_ItemSlot.MouseHover_ItemArray_int_int += il =>
             {
@@ -50,34 +48,41 @@ namespace ChooseAmmoPerWeapon
         public override void Unload()
         {
             instance = null;
-            assignedAmmo = null;
             hoverItem = null;
 
             base.Unload();
         }
 
-        internal void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
+        private bool OverrideLeftClick(On_ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
+        {
+            Item clicked = inv[slot];
+            Item holding = Main.mouseItem;
+
+            if (holding.type != ItemID.None && clicked.type != ItemID.None)
+            {
+                if (clicked.useAmmo > 0 && holding.ammo > 0 && ItemLoader.CanChooseAmmo(clicked, holding, Main.LocalPlayer))
+                {
+                    ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo[clicked] = holding;
+                    return true;
+                }
+            }
+
+            return orig.Invoke(inv, context, slot);
+        }
+
+        private void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
         {
             Item item = inv[slot];
-            if (Main.mouseRight && !assignedAmmo.Remove(item))
+            if (Main.mouseRight && !ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo.Remove(item))
                 orig.Invoke(inv, context, slot);
         }
 
-        internal Item ChooseAmmo(On_Player.orig_ChooseAmmo orig, Player self, Item weapon)
-        {
-            Item ammo;
-            if (assignedAmmo.TryGetValue(weapon, out ammo))
-                return ammo;
-            else
-                return orig.Invoke(self, weapon);
-        }
-
-        internal void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
+        private void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
         {
             orig.Invoke(spriteBatch, inv, context, slot, position, lightColor);
 
             Item ammo;
-            if (assignedAmmo.TryGetValue(inv[slot], out ammo))
+            if (ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo.TryGetValue(inv[slot], out ammo))
             {
                 Texture2D texture = TextureAssets.Item[ammo.type].Value;
                 position.X += TextureAssets.InventoryBack.Value.Width * Main.inventoryScale;
@@ -90,21 +95,13 @@ namespace ChooseAmmoPerWeapon
             }
         }
 
-        internal static bool OverrideLeftClick(On_ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
+        private Item ChooseAmmo(On_Player.orig_ChooseAmmo orig, Player self, Item weapon)
         {
-            Item clicked = inv[slot];
-            Item holding = Main.mouseItem;
-
-            if (holding.type != ItemID.None && clicked.type != ItemID.None)
-            {
-                if (clicked.useAmmo > 0 && holding.ammo > 0 && ItemLoader.CanChooseAmmo(clicked, holding, Main.LocalPlayer))
-                {
-                    assignedAmmo[clicked] = holding;
-                    return true;
-                }
-            }
-
-            return orig.Invoke(inv, context, slot);
+            Item ammo;
+            if (ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo.TryGetValue(weapon, out ammo))
+                return ammo;
+            else
+                return orig.Invoke(self, weapon);
         }
     }
 }
