@@ -14,14 +14,16 @@ namespace ChooseAmmoPerWeapon
 {
     public class ChooseAmmoPerWeapon : Mod
     {
-        public static ChooseAmmoPerWeapon Instance => ModContent.GetInstance<ChooseAmmoPerWeapon>();
+        public static ChooseAmmoPerWeapon instance;
 
-        public static Dictionary<Item, Item> AssignedAmmo;
-        public static Item HoverItem;
+        public Dictionary<Item, Item> assignedAmmo;
+        public Item hoverItem;
 
         public override void Load()
         {
-            AssignedAmmo = new Dictionary<Item, Item>();
+            instance = this;
+
+            assignedAmmo = new Dictionary<Item, Item>();
             // We use our own HoverItem variable as the Item object is Cloned in Terraria code
             IL_ItemSlot.MouseHover_ItemArray_int_int += il =>
             {
@@ -30,7 +32,7 @@ namespace ChooseAmmoPerWeapon
                 c.GotoNext(MoveType.Before, i => i.MatchCallvirt(typeof(Item).GetMethod(nameof(Item.Clone))));
 
                 c.Emit(OpCodes.Dup);
-                c.Emit(OpCodes.Stsfld, typeof(ChooseAmmoPerWeapon).GetField(nameof(ChooseAmmoPerWeapon.HoverItem), BindingFlags.Public | BindingFlags.Static));
+                c.Emit(OpCodes.Stsfld, typeof(ChooseAmmoPerWeapon).GetField(nameof(ChooseAmmoPerWeapon.hoverItem), BindingFlags.Public | BindingFlags.Static));
             };
 
             // Assign functionality
@@ -39,7 +41,7 @@ namespace ChooseAmmoPerWeapon
             On_ItemSlot.RightClick_ItemArray_int_int += RightClick;
             // Draw ammo icon next to weapons
             On_ItemSlot.Draw_SpriteBatch_ItemArray_int_int_Vector2_Color += ItemSlot_Draw;
-            // Main mod functionality
+            // Override used ammo with set
             On_Player.ChooseAmmo += ChooseAmmo;
 
             base.Load();
@@ -47,33 +49,35 @@ namespace ChooseAmmoPerWeapon
 
         public override void Unload()
         {
-            AssignedAmmo = null;
+            instance = null;
+            assignedAmmo = null;
+            hoverItem = null;
 
             base.Unload();
         }
 
-        private void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
+        internal void RightClick(On_ItemSlot.orig_RightClick_ItemArray_int_int orig, Item[] inv, int context, int slot)
         {
             Item item = inv[slot];
-            if (Main.mouseRight && !AssignedAmmo.Remove(item))
+            if (Main.mouseRight && !assignedAmmo.Remove(item))
                 orig.Invoke(inv, context, slot);
         }
 
-        private Item ChooseAmmo(On_Player.orig_ChooseAmmo orig, Player self, Item weapon)
+        internal Item ChooseAmmo(On_Player.orig_ChooseAmmo orig, Player self, Item weapon)
         {
             Item ammo;
-            if (AssignedAmmo.TryGetValue(weapon, out ammo))
+            if (assignedAmmo.TryGetValue(weapon, out ammo))
                 return ammo;
             else
                 return orig.Invoke(self, weapon);
         }
 
-        private void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
+        internal void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
         {
             orig.Invoke(spriteBatch, inv, context, slot, position, lightColor);
 
             Item ammo;
-            if (AssignedAmmo.TryGetValue(inv[slot], out ammo))
+            if (assignedAmmo.TryGetValue(inv[slot], out ammo))
             {
                 Texture2D texture = TextureAssets.Item[ammo.type].Value;
                 position.X += TextureAssets.InventoryBack.Value.Width * Main.inventoryScale;
@@ -86,7 +90,7 @@ namespace ChooseAmmoPerWeapon
             }
         }
 
-        private static bool OverrideLeftClick(On_ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
+        internal static bool OverrideLeftClick(On_ItemSlot.orig_OverrideLeftClick orig, Item[] inv, int context, int slot)
         {
             Item clicked = inv[slot];
             Item holding = Main.mouseItem;
@@ -95,7 +99,7 @@ namespace ChooseAmmoPerWeapon
             {
                 if (clicked.useAmmo > 0 && holding.ammo > 0 && ItemLoader.CanChooseAmmo(clicked, holding, Main.LocalPlayer))
                 {
-                    AssignedAmmo[clicked] = holding;
+                    assignedAmmo[clicked] = holding;
                     return true;
                 }
             }
