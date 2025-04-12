@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -80,6 +81,11 @@ namespace ChooseAmmoPerWeapon
         private void ItemSlot_Draw(On_ItemSlot.orig_Draw_SpriteBatch_ItemArray_int_int_Vector2_Color orig, SpriteBatch spriteBatch, Item[] inv, int context, int slot, Vector2 position, Color lightColor)
         {
             orig.Invoke(spriteBatch, inv, context, slot, position, lightColor);
+
+            // Some mods use this function to draw their icon in the mod configuration menu,
+            // in which case the slot will be invalid.
+            if (slot < 0 || slot > inv.Length - 1)
+                return;
 
             Item ammo;
             if (ChooseAmmoPerWeaponModPlayer.LocalAssignedAmmo.TryGetValue(inv[slot], out ammo))
